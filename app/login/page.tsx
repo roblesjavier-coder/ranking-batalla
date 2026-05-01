@@ -59,13 +59,13 @@ export default function LoginPage() {
         >
           <h1 className="text-xl font-semibold">Revisa tu email</h1>
           <p className="text-gray-600 text-sm">
-            Te enviamos un código de 6 dígitos a <strong>{email}</strong>. Pegalo acá:
+            Te enviamos un código al a <strong>{email}</strong>. Pegalo acá:
           </p>
           <input
             type="text"
             inputMode="numeric"
-            pattern="[0-9]{6}"
-            maxLength={6}
+            pattern="[0-9]{6,8}"
+            maxLength={8}
             required
             placeholder="123456"
             value={codigo}
@@ -76,7 +76,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
-            disabled={cargando || codigo.length !== 6}
+            disabled={cargando || codigo.length < 6}
             className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 font-medium"
           >
             {cargando ? 'Verificando…' : 'Entrar'}
@@ -105,7 +105,7 @@ export default function LoginPage() {
       >
         <h1 className="text-xl font-semibold">Ingresar a Ranking Batalla</h1>
         <p className="text-gray-600 text-sm">
-          Te enviamos un código de 6 dígitos al email — sin contraseñas.
+          Te enviamos un código al al email — sin contraseñas.
         </p>
         <input
           type="email"
