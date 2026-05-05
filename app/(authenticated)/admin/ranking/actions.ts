@@ -49,7 +49,7 @@ export async function movePlayer(
 
   // Swap atómico via función PostgreSQL — pero no la tenemos.
   // Workaround: usar 3 updates con posición temporal para evitar conflict de UNIQUE.
-  const TEMP = -999
+  const TEMP = 999999
   const { error: e1 } = await supabase
     .from('rankings')
     .update({ position: TEMP })

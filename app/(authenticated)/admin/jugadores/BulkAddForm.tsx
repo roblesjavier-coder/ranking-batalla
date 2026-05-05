@@ -15,7 +15,7 @@ export function BulkAddForm() {
           htmlFor="lines"
           className="block text-sm font-medium text-gray-700"
         >
-          Pegá los nombres (uno por línea)
+          Pega los nombres (uno por línea)
         </label>
         <textarea
           id="lines"

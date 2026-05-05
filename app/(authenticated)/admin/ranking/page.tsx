@@ -57,7 +57,7 @@ export default async function AdminRankingPage() {
       </Link>
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Ordenar ranking</h2>
       <p className="text-sm text-gray-500 mb-4">
-        Usá las flechas para mover jugadores. El orden se guarda al instante.
+        Usa las flechas para mover jugadores. El orden se guarda al instante.
       </p>
 
       {rows.length === 0 ? (

@@ -63,7 +63,7 @@ export function PerfilForm({
           className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Por ahora pegá un link. Más adelante vas a poder subir una foto desde
+          Por ahora pega un link. Más adelante vas a poder subir una foto desde
           el celular.
         </p>
       </div>

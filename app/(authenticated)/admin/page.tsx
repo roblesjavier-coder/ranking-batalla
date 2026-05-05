@@ -5,7 +5,7 @@ export default function AdminDashboardPage() {
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Panel de admin</h2>
       <p className="text-sm text-gray-500 mb-6">
-        Configurá tu club y gestioná el ranking.
+        Configura tu club y gestiona el ranking.
       </p>
 
       <div className="space-y-3">
