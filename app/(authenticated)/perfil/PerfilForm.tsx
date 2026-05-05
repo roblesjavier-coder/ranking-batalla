@@ -24,7 +24,7 @@ export function PerfilForm({
         <label className="block text-sm font-medium text-gray-700">Email</label>
         <p className="mt-1 text-sm text-gray-500">{email}</p>
         <p className="mt-1 text-xs text-gray-400">
-          (No se puede cambiar — es el que usás para iniciar sesión.)
+          (No se puede cambiar — es el que usas para iniciar sesión.)
         </p>
       </div>
 

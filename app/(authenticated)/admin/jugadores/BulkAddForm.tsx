@@ -27,7 +27,7 @@ export function BulkAddForm() {
         />
         <p className="mt-1 text-xs text-gray-500">
           Solo nombre, o nombre + email (separados por coma o &lt;&gt;). El email
-          es opcional, lo podés agregar después.
+          es opcional, lo puedes agregar después.
         </p>
       </div>
 

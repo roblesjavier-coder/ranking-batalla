@@ -59,7 +59,7 @@ export default function LoginPage() {
         >
           <h1 className="text-xl font-semibold">Revisa tu email</h1>
           <p className="text-gray-600 text-sm">
-            Te enviamos un código al a <strong>{email}</strong>. Pegalo acá:
+            Te enviamos un código al a <strong>{email}</strong>. Pégalo aquí:
           </p>
           <input
             type="text"
@@ -105,7 +105,7 @@ export default function LoginPage() {
       >
         <h1 className="text-xl font-semibold">Ingresar a Ranking Batalla</h1>
         <p className="text-gray-600 text-sm">
-          Te enviamos un código al al email — sin contraseñas.
+          Te enviamos un código al email — sin contraseñas.
         </p>
         <input
           type="email"
