@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import type { Profile } from '@/lib/database.types'
 import { deletePlayer, updatePlayer } from './actions'
 
-const initial = { ok: false }
+const initial: { ok: boolean; error?: string } = { ok: false }
 
 interface Props {
   player: Profile & { position: number | null }
