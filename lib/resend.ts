@@ -56,9 +56,6 @@ export async function sendEmail({
   }
 }
 
-/**
- * Email que se envia al desafiado cuando alguien lo desafia.
- */
 export function challengeEmailHtml({
   challengerName,
   defenderName,
@@ -83,6 +80,50 @@ export function challengeEmailHtml({
           <a href="${appUrl}/desafios"
              style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500;">
             Ver el desafio
+          </a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+        <p style="margin: 0; font-size: 12px; color: #6b7280;">
+          Ranking Batalla · ${appUrl}
+        </p>
+      </div>
+    `,
+  }
+}
+
+export function challengeResponseEmailHtml({
+  challengerName,
+  defenderName,
+  response,
+  appUrl,
+}: {
+  challengerName: string
+  defenderName: string
+  response: 'aceptado' | 'rechazado'
+  appUrl: string
+}): { subject: string; html: string } {
+  const accepted = response === 'aceptado'
+  const subject = accepted
+    ? `${defenderName} acepto tu desafio`
+    : `${defenderName} rechazo tu desafio`
+  const intro = accepted
+    ? `<strong>${defenderName}</strong> acepto el desafio. ¡A coordinar el partido!`
+    : `<strong>${defenderName}</strong> rechazo tu desafio.`
+  const cta = accepted
+    ? 'Tienen 14 dias para jugarlo.'
+    : 'Puedes desafiar a alguien mas o esperar para volver a intentarlo.'
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="margin: 0 0 12px;">Hola ${challengerName} 👋</h2>
+        <p style="margin: 0 0 16px; line-height: 1.5;">${intro}</p>
+        <p style="margin: 0 0 24px; line-height: 1.5;">${cta}</p>
+        <p style="margin: 0 0 24px;">
+          <a href="${appUrl}/desafios"
+             style="display: inline-block; background: ${accepted ? '#2563eb' : '#6b7280'}; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+            Ver mis desafios
           </a>
         </p>
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
