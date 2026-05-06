@@ -8,6 +8,15 @@ export interface UpdateProfileResult {
   error?: string
 }
 
+const ALLOWED_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+])
+const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
+
 export async function updateProfile(
   _prev: UpdateProfileResult,
   formData: FormData
@@ -16,38 +25,62 @@ export async function updateProfile(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'No estás autenticado.' }
+  if (!user) return { ok: false, error: 'No estas autenticado.' }
 
   const fullName = String(formData.get('full_name') ?? '').trim()
-  const avatarRaw = String(formData.get('avatar_url') ?? '').trim()
-
-  if (!fullName) {
-    return { ok: false, error: 'El nombre es requerido.' }
-  }
+  if (!fullName) return { ok: false, error: 'El nombre es requerido.' }
   if (fullName.length > 80) {
-    return { ok: false, error: 'El nombre es demasiado largo (máx 80).' }
+    return { ok: false, error: 'El nombre es demasiado largo (max 80).' }
   }
 
-  let avatar_url: string | null = avatarRaw || null
-  if (avatar_url) {
-    try {
-      const u = new URL(avatar_url)
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') {
-        return { ok: false, error: 'La URL de la foto debe empezar con http(s)://' }
-      }
-    } catch {
-      return { ok: false, error: 'La URL de la foto no es válida.' }
+  // Avatar: file (input type=file) o flag de "remover"
+  const avatarFile = formData.get('avatar_file') as File | null
+  const removeAvatar = String(formData.get('remove_avatar') ?? '') === '1'
+
+  let avatar_url: string | null | undefined = undefined // undefined = no tocar
+
+  if (removeAvatar) {
+    avatar_url = null
+  } else if (avatarFile && avatarFile.size > 0) {
+    if (!ALLOWED_TYPES.has(avatarFile.type)) {
+      return { ok: false, error: 'Tipo de imagen no soportado (usa JPG, PNG, WEBP o GIF).' }
     }
+    if (avatarFile.size > MAX_BYTES) {
+      return { ok: false, error: 'La imagen pesa mas de 5 MB.' }
+    }
+
+    const ext = (avatarFile.name.split('.').pop() || 'jpg').toLowerCase()
+    const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
+    // Path con folder = auth_user_id (lo exigen las policies de storage)
+    const path = `${user.id}/${Date.now()}.${safeExt}`
+
+    const { error: upErr } = await supabase.storage
+      .from('avatars')
+      .upload(path, avatarFile, {
+        upsert: true,
+        contentType: avatarFile.type,
+        cacheControl: '3600',
+      })
+    if (upErr) {
+      return { ok: false, error: 'No se pudo subir la imagen: ' + upErr.message }
+    }
+
+    const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+    avatar_url = pub.publicUrl
   }
+
+  // Update profile
+  const update: { full_name: string; avatar_url?: string | null } = {
+    full_name: fullName,
+  }
+  if (avatar_url !== undefined) update.avatar_url = avatar_url
 
   const { error } = await supabase
     .from('profiles')
-    .update({ full_name: fullName, avatar_url })
+    .update(update)
     .eq('auth_user_id', user.id)
 
-  if (error) {
-    return { ok: false, error: error.message }
-  }
+  if (error) return { ok: false, error: error.message }
 
   revalidatePath('/perfil')
   revalidatePath('/ranking')
