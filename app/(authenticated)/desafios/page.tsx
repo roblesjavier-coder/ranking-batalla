@@ -1,16 +1,31 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { Challenge, Profile } from '@/lib/database.types'
+import type { Challenge, Match, Profile } from '@/lib/database.types'
 import { ChallengeCard } from './ChallengeCard'
 
 export const dynamic = 'force-dynamic'
 
-type Tab = 'activos' | 'recibidos' | 'enviados'
+type Tab = 'activos' | 'recibidos' | 'enviados' | 'historial'
 
 interface ChallengeWithProfiles extends Challenge {
   challenger: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   defender: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
 }
+
+type MatchPartial = Pick<
+  Match,
+  | 'challenge_id'
+  | 'played_at'
+  | 'winner_id'
+  | 'loser_id'
+  | 'score'
+  | 'challenger_reported_winner_id'
+  | 'challenger_reported_at'
+  | 'defender_reported_winner_id'
+  | 'defender_reported_at'
+  | 'confirmed_at'
+  | 'disputed'
+>
 
 export default async function DesafiosPage({
   searchParams,
@@ -21,7 +36,8 @@ export default async function DesafiosPage({
   const tab: Tab =
     params.tab === 'recibidos' ||
     params.tab === 'enviados' ||
-    params.tab === 'activos'
+    params.tab === 'activos' ||
+    params.tab === 'historial'
       ? params.tab
       : 'activos'
 
@@ -29,11 +45,8 @@ export default async function DesafiosPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) {
-    return null
-  }
+  if (!user) return null
 
-  // Mi profile
   const { data: myProfile } = await supabase
     .from('profiles')
     .select('id, full_name')
@@ -50,35 +63,52 @@ export default async function DesafiosPage({
 
   const myId = myProfile.id
 
-  // Filtros por tab
-  const baseQuery = supabase
-    .from('challenges')
-    .select(
-      `
-        *,
-        challenger:profiles!challenger_id (id, full_name, avatar_url),
-        defender:profiles!defender_id (id, full_name, avatar_url)
-      `
-    )
-    .order('issued_at', { ascending: false })
+  const [{ data: rawChallenges }, { data: rawMatches }] = await Promise.all([
+    supabase
+      .from('challenges')
+      .select(`
+          *,
+          challenger:profiles!challenger_id (id, full_name, avatar_url),
+          defender:profiles!defender_id (id, full_name, avatar_url)
+        `)
+      .order('issued_at', { ascending: false }),
+    supabase
+      .from('matches')
+      .select(
+        'challenge_id, played_at, winner_id, loser_id, score, challenger_reported_winner_id, challenger_reported_at, defender_reported_winner_id, defender_reported_at, confirmed_at, disputed'
+      ),
+  ])
 
-  const { data: rawChallenges } = await baseQuery
   const all = (rawChallenges ?? []) as unknown as ChallengeWithProfiles[]
+  const matches = (rawMatches ?? []) as unknown as MatchPartial[]
+  const matchByChallenge = new Map<string, MatchPartial>(
+    matches.map((m) => [m.challenge_id, m])
+  )
+
+  const isMine = (c: ChallengeWithProfiles) =>
+    c.challenger_id === myId || c.defender_id === myId
 
   const activos = all.filter(
     (c) =>
       c.status === 'aceptado' &&
-      (c.challenger_id === myId || c.defender_id === myId)
+      isMine(c)
   )
-  const recibidos = all.filter(
-    (c) => c.status === 'pendiente' && c.defender_id === myId
-  )
-  const enviados = all.filter(
-    (c) => c.status === 'pendiente' && c.challenger_id === myId
+  const recibidos = all.filter((c) => c.status === 'pendiente' && c.defender_id === myId)
+  const enviados = all.filter((c) => c.status === 'pendiente' && c.challenger_id === myId)
+  const historial = all.filter(
+    (c) =>
+      isMine(c) &&
+      ['jugado', 'walkover_a_desafiante', 'walkover_a_desafiado', 'rechazado', 'cancelado_mutuo', 'cancelado_admin', 'expirado'].includes(c.status)
   )
 
   const visible: ChallengeWithProfiles[] =
-    tab === 'activos' ? activos : tab === 'recibidos' ? recibidos : enviados
+    tab === 'activos'
+      ? activos
+      : tab === 'recibidos'
+      ? recibidos
+      : tab === 'enviados'
+      ? enviados
+      : historial
 
   return (
     <div>
@@ -87,25 +117,11 @@ export default async function DesafiosPage({
         Tus partidos pendientes y por confirmar.
       </p>
 
-      <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
-        <TabLink
-          tab="activos"
-          current={tab}
-          label="Activos"
-          count={activos.length}
-        />
-        <TabLink
-          tab="recibidos"
-          current={tab}
-          label="Recibidos"
-          count={recibidos.length}
-        />
-        <TabLink
-          tab="enviados"
-          current={tab}
-          label="Enviados"
-          count={enviados.length}
-        />
+      <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 overflow-x-auto">
+        <TabLink tab="activos" current={tab} label="Activos" count={activos.length} />
+        <TabLink tab="recibidos" current={tab} label="Recibidos" count={recibidos.length} />
+        <TabLink tab="enviados" current={tab} label="Enviados" count={enviados.length} />
+        <TabLink tab="historial" current={tab} label="Historial" count={historial.length} />
       </div>
 
       {visible.length === 0 ? (
@@ -116,6 +132,7 @@ export default async function DesafiosPage({
             <ChallengeCard
               key={c.id}
               challenge={c}
+              match={matchByChallenge.get(c.id) ?? null}
               myId={myId}
             />
           ))}
@@ -140,10 +157,8 @@ function TabLink({
   return (
     <Link
       href={`/desafios?tab=${tab}`}
-      className={`flex-1 text-center text-sm py-2 rounded-md font-medium transition-colors ${
-        isActive
-          ? 'bg-white text-gray-900 shadow-sm'
-          : 'text-gray-600 hover:text-gray-900'
+      className={`flex-1 text-center text-sm py-2 rounded-md font-medium transition-colors whitespace-nowrap ${
+        isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
       }`}
     >
       {label}
@@ -161,24 +176,28 @@ function TabLink({
 }
 
 function EmptyState({ tab }: { tab: Tab }) {
-  const messages: Record<Tab, { emoji: string; title: string; desc: string }> =
-    {
-      activos: {
-        emoji: '🎾',
-        title: 'No tienes partidos por jugar',
-        desc: 'Cuando aceptes un desafio (o te acepten uno) lo vas a ver aqui.',
-      },
-      recibidos: {
-        emoji: '📨',
-        title: 'No tienes desafios pendientes de respuesta',
-        desc: 'Si alguien te desafia, lo vas a ver aqui para aceptar o rechazar.',
-      },
-      enviados: {
-        emoji: '📤',
-        title: 'No mandaste ningun desafio',
-        desc: 'Ve al ranking y aprieta "Desafiar" en algun jugador arriba tuyo.',
-      },
-    }
+  const messages: Record<Tab, { emoji: string; title: string; desc: string }> = {
+    activos: {
+      emoji: '🎾',
+      title: 'No tienes partidos por jugar',
+      desc: 'Cuando aceptes un desafio (o te acepten uno) lo vas a ver aqui.',
+    },
+    recibidos: {
+      emoji: '📨',
+      title: 'No tienes desafios pendientes de respuesta',
+      desc: 'Si alguien te desafia, lo vas a ver aqui para aceptar o rechazar.',
+    },
+    enviados: {
+      emoji: '📤',
+      title: 'No mandaste ningun desafio',
+      desc: 'Ve al ranking y aprieta "Desafiar" en algun jugador arriba tuyo.',
+    },
+    historial: {
+      emoji: '📜',
+      title: 'Todavia no tienes partidos jugados',
+      desc: 'Cuando termines tu primer partido, aparecera aqui.',
+    },
+  }
   const m = messages[tab]
   return (
     <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
@@ -188,4 +207,3 @@ function EmptyState({ tab }: { tab: Tab }) {
     </div>
   )
 }
-

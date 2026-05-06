@@ -1,5 +1,4 @@
 // Helper para enviar emails via Resend HTTP API.
-// La API key se configura en la env var RESEND_API_KEY (en Vercel).
 
 const RESEND_FROM = 'Ranking Batalla <noreply@rankingbatalla.com>'
 
@@ -24,7 +23,6 @@ export async function sendEmail({
     console.error('[resend] RESEND_API_KEY no esta configurada')
     return { ok: false, error: 'RESEND_API_KEY no configurada' }
   }
-
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -32,28 +30,35 @@ export async function sendEmail({
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: RESEND_FROM,
-        to,
-        subject,
-        html,
-      }),
+      body: JSON.stringify({ from: RESEND_FROM, to, subject, html }),
     })
-
     if (!res.ok) {
       const errBody = await res.text()
-      console.error('[resend] error enviando email:', res.status, errBody)
+      console.error('[resend] error:', res.status, errBody)
       return { ok: false, error: `Resend ${res.status}: ${errBody}` }
     }
-
     return { ok: true }
   } catch (err) {
-    console.error('[resend] excepcion enviando email:', err)
+    console.error('[resend] excepcion:', err)
     return {
       ok: false,
       error: err instanceof Error ? err.message : 'Error desconocido',
     }
   }
+}
+
+function frame(title: string, body: string, ctaLabel: string, ctaUrl: string, ctaColor = '#2563eb'): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h2 style="margin: 0 0 12px;">${title}</h2>
+      ${body}
+      <p style="margin: 24px 0;">
+        <a href="${ctaUrl}" style="display: inline-block; background: ${ctaColor}; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500;">${ctaLabel}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+      <p style="margin: 0; font-size: 12px; color: #6b7280;">Ranking Batalla</p>
+    </div>
+  `
 }
 
 export function challengeEmailHtml({
@@ -67,27 +72,13 @@ export function challengeEmailHtml({
 }): { subject: string; html: string } {
   return {
     subject: `${challengerName} te desafio en Ranking Batalla`,
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-        <h2 style="margin: 0 0 12px;">Hola ${defenderName} 👋</h2>
-        <p style="margin: 0 0 16px; line-height: 1.5;">
-          <strong>${challengerName}</strong> te acaba de desafiar.
-        </p>
-        <p style="margin: 0 0 24px; line-height: 1.5;">
-          Entra a la app para aceptar o rechazar el desafio. Tienes 14 dias para concretar el partido.
-        </p>
-        <p style="margin: 0 0 24px;">
-          <a href="${appUrl}/desafios"
-             style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-            Ver el desafio
-          </a>
-        </p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-        <p style="margin: 0; font-size: 12px; color: #6b7280;">
-          Ranking Batalla · ${appUrl}
-        </p>
-      </div>
-    `,
+    html: frame(
+      `Hola ${defenderName} 👋`,
+      `<p style="margin:0 0 16px;line-height:1.5;"><strong>${challengerName}</strong> te acaba de desafiar.</p>
+       <p style="margin:0;line-height:1.5;">Entra a la app para aceptar o rechazar el desafio. Tienen 14 dias para concretar el partido.</p>`,
+      'Ver el desafio',
+      `${appUrl}/desafios`
+    ),
   }
 }
 
@@ -110,27 +101,67 @@ export function challengeResponseEmailHtml({
     ? `<strong>${defenderName}</strong> acepto el desafio. ¡A coordinar el partido!`
     : `<strong>${defenderName}</strong> rechazo tu desafio.`
   const cta = accepted
-    ? 'Tienen 14 dias para jugarlo.'
-    : 'Puedes desafiar a alguien mas o esperar para volver a intentarlo.'
-
+    ? 'Tienen 14 dias para jugarlo. Cuando lo jueguen, ambos cargan el resultado en la app.'
+    : 'Puedes desafiar a alguien mas.'
   return {
     subject,
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-        <h2 style="margin: 0 0 12px;">Hola ${challengerName} 👋</h2>
-        <p style="margin: 0 0 16px; line-height: 1.5;">${intro}</p>
-        <p style="margin: 0 0 24px; line-height: 1.5;">${cta}</p>
-        <p style="margin: 0 0 24px;">
-          <a href="${appUrl}/desafios"
-             style="display: inline-block; background: ${accepted ? '#2563eb' : '#6b7280'}; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-            Ver mis desafios
-          </a>
-        </p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-        <p style="margin: 0; font-size: 12px; color: #6b7280;">
-          Ranking Batalla · ${appUrl}
-        </p>
-      </div>
-    `,
+    html: frame(
+      `Hola ${challengerName} 👋`,
+      `<p style="margin:0 0 16px;line-height:1.5;">${intro}</p><p style="margin:0;line-height:1.5;">${cta}</p>`,
+      'Ver mis desafios',
+      `${appUrl}/desafios`,
+      accepted ? '#2563eb' : '#6b7280'
+    ),
+  }
+}
+
+export function matchResultPendingEmailHtml({
+  recipientName,
+  reporterName,
+  appUrl,
+}: {
+  recipientName: string
+  reporterName: string
+  appUrl: string
+}): { subject: string; html: string } {
+  return {
+    subject: `${reporterName} cargo el resultado del partido`,
+    html: frame(
+      `Hola ${recipientName} 👋`,
+      `<p style="margin:0 0 16px;line-height:1.5;"><strong>${reporterName}</strong> ya cargo el resultado del partido.</p>
+       <p style="margin:0;line-height:1.5;">Para confirmarlo y cerrar el desafio, entra y carga tu version. Si los dos coinciden en el ganador, el ranking se actualiza automaticamente.</p>`,
+      'Cargar mi resultado',
+      `${appUrl}/desafios`
+    ),
+  }
+}
+
+export function matchConfirmedEmailHtml({
+  recipientName,
+  opponentName,
+  iWon,
+  appUrl,
+}: {
+  recipientName: string
+  opponentName: string
+  iWon: boolean
+  appUrl: string
+}): { subject: string; html: string } {
+  const subject = iWon
+    ? `Ganaste contra ${opponentName} 🎾`
+    : `Resultado confirmado vs ${opponentName}`
+  const intro = iWon
+    ? `Ganaste contra <strong>${opponentName}</strong>. ¡Buen partido!`
+    : `Cerro el partido contra <strong>${opponentName}</strong>.`
+  return {
+    subject,
+    html: frame(
+      `Hola ${recipientName} 👋`,
+      `<p style="margin:0 0 16px;line-height:1.5;">${intro}</p>
+       <p style="margin:0;line-height:1.5;">Mira el ranking actualizado en la app.</p>`,
+      'Ver el ranking',
+      `${appUrl}/ranking`,
+      iWon ? '#16a34a' : '#6b7280'
+    ),
   }
 }
