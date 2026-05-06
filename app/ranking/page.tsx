@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Profile } from '@/lib/database.types'
+import type { ClubSettings, Profile } from '@/lib/database.types'
+import { DesafiarButton } from './DesafiarButton'
 
 interface RankingRow {
   position: number
@@ -9,44 +10,76 @@ interface RankingRow {
 export default async function RankingPage() {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('rankings')
-    .select(
-      `
-        position,
-        profile:profiles!inner (
-          id,
-          full_name,
-          email,
-          avatar_url,
-          auth_user_id,
-          vacation_until,
-          role
-        )
-      `
-    )
-    .order('position', { ascending: true })
+  const [
+    { data: rankingsData, error: rankingsErr },
+    { data: clubData },
+    {
+      data: { user },
+    },
+  ] = await Promise.all([
+    supabase
+      .from('rankings')
+      .select(
+        `
+          position,
+          profile:profiles!inner (
+            id,
+            full_name,
+            email,
+            avatar_url,
+            auth_user_id,
+            vacation_until,
+            role
+          )
+        `
+      )
+      .order('position', { ascending: true }),
+    supabase.from('club_settings').select('*').eq('id', 1).maybeSingle(),
+    supabase.auth.getUser(),
+  ])
 
-  if (error) {
+  if (rankingsErr) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-        Error cargando el ranking: {error.message}
+        Error cargando el ranking: {rankingsErr.message}
       </div>
     )
   }
 
-  const rankings = (data ?? []) as unknown as RankingRow[]
+  const rankings = (rankingsData ?? []) as unknown as RankingRow[]
+  const club = clubData as ClubSettings | null
+  const challengeRangeN = club?.challenge_range_n ?? 20
+
+  // Si esta logueado: mi posicion + si estoy en vacaciones
+  let myProfileId: string | null = null
+  let myPosition: number | null = null
+  let amOnVacation = false
+  if (user) {
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('id, vacation_until')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+    if (myProfile) {
+      myProfileId = myProfile.id
+      amOnVacation =
+        !!myProfile.vacation_until &&
+        new Date(myProfile.vacation_until) > new Date()
+      const myRow = rankings.find((r) => r.profile?.id === myProfile.id)
+      myPosition = myRow?.position ?? null
+    }
+  }
 
   if (rankings.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-5xl mb-3">🎾</div>
         <h2 className="text-xl font-semibold text-gray-900">
-          Todavía no hay ranking
+          Todavia no hay ranking
         </h2>
         <p className="mt-2 text-sm text-gray-600 max-w-xs mx-auto">
-          El admin del club todavía no agregó jugadores. Cuando lo haga, los vas
-          a ver acá ordenados por posición.
+          El admin del club todavia no agrego jugadores. Cuando lo haga, los vas
+          a ver aqui ordenados por posicion.
         </p>
       </div>
     )
@@ -67,6 +100,24 @@ export default async function RankingPage() {
           const isOnVacation =
             !!p.vacation_until && new Date(p.vacation_until) > new Date()
           const displayName = p.full_name?.trim() || p.email || 'Sin nombre'
+          const isMe = !!myProfileId && p.id === myProfileId
+
+          // El boton "Desafiar" se muestra si:
+          //  - el user esta logueado
+          //  - no es uno mismo
+          //  - el defender esta arriba mio en el ranking
+          //  - la diferencia esta dentro de la regla N
+          //  - ninguno de los dos esta en vacaciones
+          //  - el defender ya tiene cuenta activa (no esta pendiente)
+          const canChallenge =
+            !!user &&
+            !isMe &&
+            myPosition !== null &&
+            row.position < myPosition &&
+            myPosition - row.position <= challengeRangeN &&
+            !amOnVacation &&
+            !isOnVacation &&
+            !isPending
 
           return (
             <li
@@ -91,6 +142,9 @@ export default async function RankingPage() {
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-gray-900 truncate">
                   {displayName}
+                  {isMe && (
+                    <span className="ml-1.5 text-xs text-gray-500">(tu)</span>
+                  )}
                 </div>
                 {(isPending || isOnVacation || p.role === 'admin') && (
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -106,6 +160,13 @@ export default async function RankingPage() {
                   </div>
                 )}
               </div>
+
+              {canChallenge && (
+                <DesafiarButton
+                  defenderId={p.id}
+                  defenderName={displayName}
+                />
+              )}
             </li>
           )
         })}

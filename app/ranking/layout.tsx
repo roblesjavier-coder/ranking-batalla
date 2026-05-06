@@ -69,6 +69,7 @@ export default async function RankingLayout({
           <NavLink href="/ranking" label="Ranking" icon="🏆" />
           {user ? (
             <>
+              <NavLink href="/desafios" label="Desafios" icon="⚔️" />
               <NavLink href="/perfil" label="Mi perfil" icon="👤" />
               {isAdmin && <NavLink href="/admin" label="Admin" icon="⚙️" />}
             </>

@@ -52,6 +52,7 @@ export default async function AuthenticatedLayout({
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="max-w-md mx-auto flex">
           <NavLink href="/ranking" label="Ranking" icon="🏆" />
+          <NavLink href="/desafios" label="Desafios" icon="⚔️" />
           <NavLink href="/perfil" label="Mi perfil" icon="👤" />
           {isAdmin && <NavLink href="/admin" label="Admin" icon="⚙️" />}
         </div>
