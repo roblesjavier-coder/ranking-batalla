@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Profile } from '@/lib/database.types'
 import { PerfilForm } from './PerfilForm'
-import { PlayerStats, type PlayerStatsData } from './PlayerStats'
+import { PlayerStats, type PlayerStatsData } from '@/components/PlayerStats'
 import { VacationCard } from './VacationCard'
 
 export default async function PerfilPage() {

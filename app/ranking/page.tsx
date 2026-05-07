@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { ClubSettings, Profile } from '@/lib/database.types'
 import { DesafiarButton } from './DesafiarButton'
@@ -85,7 +86,7 @@ export default async function RankingPage() {
 
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Ranking del club</h2>
       <p className="text-sm text-gray-500 mb-4">
-        {rankings.length} {rankings.length === 1 ? 'jugador' : 'jugadores'}
+        {rankings.length} {rankings.length === 1 ? 'jugador' : 'jugadores'} · toca uno para ver sus stats
       </p>
 
       {rankings.length === 0 ? (
@@ -120,37 +121,45 @@ export default async function RankingPage() {
               !isPending
 
             return (
-              <li key={p.id} className="px-4 py-3 flex items-center gap-3">
-                <PositionBadge position={row.position} />
+              <li
+                key={p.id}
+                className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <Link
+                  href={`/ranking/jugador/${p.id}`}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <PositionBadge position={row.position} />
 
-                {p.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.avatar_url}
-                    alt=""
-                    className="w-10 h-10 rounded-full object-cover bg-gray-100 flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 font-semibold flex items-center justify-center flex-shrink-0">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">
-                    {displayName}
-                    {isMe && (
-                      <span className="ml-1.5 text-xs text-gray-500">(tu)</span>
-                    )}
-                  </div>
-                  {(isPending || isOnVacation || p.role === 'admin') && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {p.role === 'admin' && <Badge color="gray">admin</Badge>}
-                      {isOnVacation && <Badge color="purple">🏖️ vacaciones</Badge>}
-                      {isPending && <Badge color="amber">pendiente</Badge>}
+                  {p.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.avatar_url}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover bg-gray-100 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 font-semibold flex items-center justify-center flex-shrink-0">
+                      {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">
+                      {displayName}
+                      {isMe && (
+                        <span className="ml-1.5 text-xs text-gray-500">(tu)</span>
+                      )}
+                    </div>
+                    {(isPending || isOnVacation || p.role === 'admin') && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {p.role === 'admin' && <Badge color="gray">admin</Badge>}
+                        {isOnVacation && <Badge color="purple">🏖️ vacaciones</Badge>}
+                        {isPending && <Badge color="amber">pendiente</Badge>}
+                      </div>
+                    )}
+                  </div>
+                </Link>
 
                 {canChallenge && (
                   <DesafiarButton defenderId={p.id} defenderName={displayName} />

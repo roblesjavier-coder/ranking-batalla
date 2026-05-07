@@ -15,10 +15,9 @@ export function PlayerStats({ stats }: { stats: PlayerStatsData | null }) {
   if (stats.played === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Mis estadisticas</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Estadisticas</h3>
         <p className="text-sm text-gray-500">
-          Todavia no jugaste partidos confirmados. Cuando los juegues, vas a ver
-          tus estadisticas aca.
+          Todavia no jugo partidos confirmados.
         </p>
         {stats.current_position !== null && (
           <div className="mt-3 inline-block rounded-lg bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
@@ -31,7 +30,7 @@ export function PlayerStats({ stats }: { stats: PlayerStatsData | null }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Mis estadisticas</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Estadisticas</h3>
       <div className="grid grid-cols-2 gap-3">
         <Stat
           label="Posicion actual"
