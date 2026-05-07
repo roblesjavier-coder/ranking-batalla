@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerStats, type PlayerStatsData } from '@/components/PlayerStats'
+import { RecentMatches, type RecentMatch } from '@/components/RecentMatches'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -11,15 +12,21 @@ export default async function JugadorPublicoPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: profile }, { data: statsData }, {
-    data: { user },
-  }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: statsData },
+    { data: matchesData },
+    {
+      data: { user },
+    },
+  ] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, full_name, email, avatar_url, role, vacation_until, auth_user_id')
       .eq('id', id)
       .maybeSingle(),
     supabase.rpc('get_player_stats', { p_profile_id: id }),
+    supabase.rpc('get_player_recent_matches', { p_profile_id: id, p_limit: 5 }),
     supabase.auth.getUser(),
   ])
 
@@ -33,6 +40,10 @@ export default async function JugadorPublicoPage({ params }: Props) {
   } else if (statsData && typeof statsData === 'object') {
     stats = statsData as PlayerStatsData
   }
+
+  const matches: RecentMatch[] = Array.isArray(matchesData)
+    ? (matchesData as RecentMatch[])
+    : []
 
   const p = profile as {
     id: string
@@ -49,7 +60,6 @@ export default async function JugadorPublicoPage({ params }: Props) {
     !!p.vacation_until && new Date(p.vacation_until) > new Date()
   const isPending = !p.auth_user_id
 
-  // Es mi propio perfil?
   let isOwnProfile = false
   if (user) {
     const { data: myProfile } = await supabase
@@ -93,6 +103,7 @@ export default async function JugadorPublicoPage({ params }: Props) {
       </div>
 
       <PlayerStats stats={stats} />
+      <RecentMatches matches={matches} />
 
       {isOwnProfile && (
         <Link
