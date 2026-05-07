@@ -4,12 +4,19 @@ import { createClient } from '@/lib/supabase/server'
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
 
-  const { count: disputeCount } = await supabase
-    .from('matches')
-    .select('*', { count: 'exact', head: true })
-    .eq('disputed', true)
+  const [{ count: disputeCount }, { count: activeCount }] = await Promise.all([
+    supabase
+      .from('matches')
+      .select('*', { count: 'exact', head: true })
+      .eq('disputed', true),
+    supabase
+      .from('challenges')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pendiente', 'aceptado']),
+  ])
 
   const pendingDisputes = disputeCount && disputeCount > 0 ? disputeCount : undefined
+  const activeChallenges = activeCount && activeCount > 0 ? activeCount : undefined
 
   return (
     <div>
@@ -25,6 +32,15 @@ export default async function AdminDashboardPage() {
           title="Disputas"
           description="Resolver partidos con reportes contradictorios."
           badge={pendingDisputes}
+          badgeColor="red"
+        />
+        <AdminCard
+          href="/admin/desafios-activos"
+          icon="📋"
+          title="Desafios activos"
+          description="Ver y cancelar desafios pendientes o aceptados."
+          badge={activeChallenges}
+          badgeColor="gray"
         />
         <AdminCard
           href="/admin/club"
@@ -55,13 +71,17 @@ function AdminCard({
   title,
   description,
   badge,
+  badgeColor = 'red',
 }: {
   href: string
   icon: string
   title: string
   description: string
   badge?: number
+  badgeColor?: 'red' | 'gray'
 }) {
+  const badgeClass =
+    badgeColor === 'red' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
   return (
     <Link
       href={href}
@@ -73,7 +93,7 @@ function AdminCard({
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900">{title}</h3>
             {badge !== undefined && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>
                 {badge}
               </span>
             )}
