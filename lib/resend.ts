@@ -61,6 +61,16 @@ function frame(title: string, body: string, ctaLabel: string, ctaUrl: string, ct
   `
 }
 
+function formatExpiresEs(iso: string | null): string | null {
+  if (!iso) return null
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'long' })
+  } catch {
+    return null
+  }
+}
+
 export function challengeEmailHtml({
   challengerName,
   defenderName,
@@ -111,6 +121,36 @@ export function challengeResponseEmailHtml({
       'Ver mis desafios',
       `${appUrl}/desafios`,
       accepted ? '#2563eb' : '#6b7280'
+    ),
+  }
+}
+
+// Nuevo: mail unificado de "desafio confirmado" para ambos jugadores
+// cuando el desafiado acepta. Incluye la fecha real de expiracion.
+export function challengeConfirmedEmailHtml({
+  recipientName,
+  opponentName,
+  expiresAt,
+  appUrl,
+}: {
+  recipientName: string
+  opponentName: string
+  expiresAt: string | null
+  appUrl: string
+}): { subject: string; html: string } {
+  const expiresFormatted = formatExpiresEs(expiresAt)
+  const deadline = expiresFormatted
+    ? `Tienen hasta el <strong>${expiresFormatted}</strong> para jugarlo.`
+    : `Tienen 14 dias para jugarlo.`
+  return {
+    subject: `Desafio confirmado vs ${opponentName}`,
+    html: frame(
+      `Hola ${recipientName} 👋`,
+      `<p style="margin:0 0 16px;line-height:1.5;">El desafio contra <strong>${opponentName}</strong> esta confirmado.</p>
+       <p style="margin:0 0 16px;line-height:1.5;">${deadline}</p>
+       <p style="margin:0;line-height:1.5;">Cuando jueguen, ambos cargan el resultado en la app. Si los dos coinciden en el ganador, el ranking se actualiza automaticamente.</p>`,
+      'Ver el desafio',
+      `${appUrl}/desafios`
     ),
   }
 }

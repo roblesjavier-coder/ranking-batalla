@@ -6,6 +6,7 @@ import {
   sendEmail,
   challengeEmailHtml,
   challengeResponseEmailHtml,
+  challengeConfirmedEmailHtml,
   matchResultPendingEmailHtml,
   matchConfirmedEmailHtml,
 } from '@/lib/resend'
@@ -79,21 +80,48 @@ export async function respondChallenge(
     const { data: ch } = await supabase
       .from('challenges')
       .select(`
+          expires_at,
           challenger:profiles!challenger_id (full_name, email),
-          defender:profiles!defender_id (full_name)
+          defender:profiles!defender_id (full_name, email)
         `)
       .eq('id', challengeId)
       .maybeSingle()
     const challenger = (ch?.challenger ?? null) as { full_name: string | null; email: string | null } | null
-    const defender = (ch?.defender ?? null) as { full_name: string | null } | null
-    if (challenger?.email) {
-      const { subject, html } = challengeResponseEmailHtml({
-        challengerName: challenger.full_name ?? 'Jugador',
-        defenderName: defender?.full_name ?? 'Tu rival',
-        response: response as 'aceptado' | 'rechazado',
-        appUrl: APP_URL,
-      })
-      await sendEmail({ to: challenger.email, subject, html })
+    const defender = (ch?.defender ?? null) as { full_name: string | null; email: string | null } | null
+    const expiresAt = (ch?.expires_at ?? null) as string | null
+
+    if (response === 'aceptado') {
+      // Mail al desafiante
+      if (challenger?.email) {
+        const { subject, html } = challengeConfirmedEmailHtml({
+          recipientName: challenger.full_name ?? 'Jugador',
+          opponentName: defender?.full_name ?? 'Tu rival',
+          expiresAt,
+          appUrl: APP_URL,
+        })
+        await sendEmail({ to: challenger.email, subject, html })
+      }
+      // Mail al desafiado (el que acaba de aceptar)
+      if (defender?.email) {
+        const { subject, html } = challengeConfirmedEmailHtml({
+          recipientName: defender.full_name ?? 'Jugador',
+          opponentName: challenger?.full_name ?? 'Tu rival',
+          expiresAt,
+          appUrl: APP_URL,
+        })
+        await sendEmail({ to: defender.email, subject, html })
+      }
+    } else {
+      // Rechazado — solo al desafiante
+      if (challenger?.email) {
+        const { subject, html } = challengeResponseEmailHtml({
+          challengerName: challenger.full_name ?? 'Jugador',
+          defenderName: defender?.full_name ?? 'Tu rival',
+          response: 'rechazado',
+          appUrl: APP_URL,
+        })
+        await sendEmail({ to: challenger.email, subject, html })
+      }
     }
   } catch (err) {
     console.error('[respondChallenge] email fallo:', err)
