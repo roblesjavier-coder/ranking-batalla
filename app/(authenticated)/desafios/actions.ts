@@ -19,6 +19,22 @@ export interface ActionResult {
 }
 
 const APP_URL = 'https://rankingbatalla.com'
+const DEFAULT_PRIMARY = '#b91c1c'
+
+async function getClubPrimaryColor(): Promise<string> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('club_settings')
+      .select('primary_color')
+      .eq('id', 1)
+      .maybeSingle()
+    const c = (data as { primary_color: string | null } | null)?.primary_color
+    return c || DEFAULT_PRIMARY
+  } catch {
+    return DEFAULT_PRIMARY
+  }
+}
 
 export async function createChallenge(
   _prev: ActionResult,
@@ -36,15 +52,17 @@ export async function createChallenge(
   try {
     const { data: caller } = await supabase.auth.getUser()
     if (caller?.user) {
-      const [{ data: challenger }, { data: defender }] = await Promise.all([
+      const [{ data: challenger }, { data: defender }, primaryColor] = await Promise.all([
         supabase.from('profiles').select('full_name').eq('auth_user_id', caller.user.id).maybeSingle(),
         supabase.from('profiles').select('full_name, email').eq('id', defenderId).maybeSingle(),
+        getClubPrimaryColor(),
       ])
       if (defender?.email) {
         const { subject, html } = challengeEmailHtml({
           challengerName: challenger?.full_name ?? 'Alguien',
           defenderName: defender.full_name ?? defender.email,
           appUrl: APP_URL,
+          primaryColor,
         })
         await sendEmail({ to: defender.email, subject, html })
       }
@@ -77,48 +95,51 @@ export async function respondChallenge(
   if (error) return { ok: false, error: error.message }
 
   try {
-    const { data: ch } = await supabase
-      .from('challenges')
-      .select(`
-          expires_at,
-          challenger:profiles!challenger_id (full_name, email),
-          defender:profiles!defender_id (full_name, email)
-        `)
-      .eq('id', challengeId)
-      .maybeSingle()
+    const [{ data: ch }, primaryColor] = await Promise.all([
+      supabase
+        .from('challenges')
+        .select(`
+            expires_at,
+            challenger:profiles!challenger_id (full_name, email),
+            defender:profiles!defender_id (full_name, email)
+          `)
+        .eq('id', challengeId)
+        .maybeSingle(),
+      getClubPrimaryColor(),
+    ])
     const challenger = (ch?.challenger ?? null) as { full_name: string | null; email: string | null } | null
     const defender = (ch?.defender ?? null) as { full_name: string | null; email: string | null } | null
     const expiresAt = (ch?.expires_at ?? null) as string | null
 
     if (response === 'aceptado') {
-      // Mail al desafiante
       if (challenger?.email) {
         const { subject, html } = challengeConfirmedEmailHtml({
           recipientName: challenger.full_name ?? 'Jugador',
           opponentName: defender?.full_name ?? 'Tu rival',
           expiresAt,
           appUrl: APP_URL,
+          primaryColor,
         })
         await sendEmail({ to: challenger.email, subject, html })
       }
-      // Mail al desafiado (el que acaba de aceptar)
       if (defender?.email) {
         const { subject, html } = challengeConfirmedEmailHtml({
           recipientName: defender.full_name ?? 'Jugador',
           opponentName: challenger?.full_name ?? 'Tu rival',
           expiresAt,
           appUrl: APP_URL,
+          primaryColor,
         })
         await sendEmail({ to: defender.email, subject, html })
       }
     } else {
-      // Rechazado — solo al desafiante
       if (challenger?.email) {
         const { subject, html } = challengeResponseEmailHtml({
           challengerName: challenger.full_name ?? 'Jugador',
           defenderName: defender?.full_name ?? 'Tu rival',
           response: 'rechazado',
           appUrl: APP_URL,
+          primaryColor,
         })
         await sendEmail({ to: challenger.email, subject, html })
       }
@@ -196,14 +217,17 @@ export async function submitMatchResult(
   const status = statusText as 'reporte_parcial' | 'partido_confirmado' | 'partido_disputado'
 
   try {
-    const { data: ch } = await supabase
-      .from('challenges')
-      .select(`
-          challenger:profiles!challenger_id (id, full_name, email),
-          defender:profiles!defender_id (id, full_name, email)
-        `)
-      .eq('id', challengeId)
-      .maybeSingle()
+    const [{ data: ch }, primaryColor] = await Promise.all([
+      supabase
+        .from('challenges')
+        .select(`
+            challenger:profiles!challenger_id (id, full_name, email),
+            defender:profiles!defender_id (id, full_name, email)
+          `)
+        .eq('id', challengeId)
+        .maybeSingle(),
+      getClubPrimaryColor(),
+    ])
     const challenger = (ch?.challenger ?? null) as
       | { id: string; full_name: string | null; email: string | null }
       | null
@@ -231,6 +255,7 @@ export async function submitMatchResult(
         recipientName: otherParty.full_name ?? 'Jugador',
         reporterName: reporter?.full_name ?? 'Tu rival',
         appUrl: APP_URL,
+        primaryColor,
       })
       await sendEmail({ to: otherParty.email, subject, html })
     } else if (status === 'partido_confirmado' && challenger && defender) {
@@ -265,7 +290,6 @@ export async function submitMatchResult(
   return { ok: true, status }
 }
 
-// Cancelacion mutua post-aceptacion
 export async function requestMatchCancel(
   _prev: ActionResult,
   formData: FormData

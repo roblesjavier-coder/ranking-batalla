@@ -1,6 +1,7 @@
 // Helper para enviar emails via Resend HTTP API.
 
 const RESEND_FROM = 'Ranking Batalla <noreply@rankingbatalla.com>'
+const DEFAULT_PRIMARY = '#b91c1c'
 
 interface SendEmailParams {
   to: string
@@ -47,7 +48,13 @@ export async function sendEmail({
   }
 }
 
-function frame(title: string, body: string, ctaLabel: string, ctaUrl: string, ctaColor = '#2563eb'): string {
+function frame(
+  title: string,
+  body: string,
+  ctaLabel: string,
+  ctaUrl: string,
+  ctaColor: string
+): string {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
       <h2 style="margin: 0 0 12px;">${title}</h2>
@@ -75,10 +82,12 @@ export function challengeEmailHtml({
   challengerName,
   defenderName,
   appUrl,
+  primaryColor = DEFAULT_PRIMARY,
 }: {
   challengerName: string
   defenderName: string
   appUrl: string
+  primaryColor?: string
 }): { subject: string; html: string } {
   return {
     subject: `${challengerName} te desafio en Ranking Batalla`,
@@ -87,7 +96,8 @@ export function challengeEmailHtml({
       `<p style="margin:0 0 16px;line-height:1.5;"><strong>${challengerName}</strong> te acaba de desafiar.</p>
        <p style="margin:0;line-height:1.5;">Entra a la app para aceptar o rechazar el desafio. Tienen 14 dias para concretar el partido.</p>`,
       'Ver el desafio',
-      `${appUrl}/desafios`
+      `${appUrl}/desafios`,
+      primaryColor
     ),
   }
 }
@@ -97,11 +107,13 @@ export function challengeResponseEmailHtml({
   defenderName,
   response,
   appUrl,
+  primaryColor = DEFAULT_PRIMARY,
 }: {
   challengerName: string
   defenderName: string
   response: 'aceptado' | 'rechazado'
   appUrl: string
+  primaryColor?: string
 }): { subject: string; html: string } {
   const accepted = response === 'aceptado'
   const subject = accepted
@@ -120,23 +132,23 @@ export function challengeResponseEmailHtml({
       `<p style="margin:0 0 16px;line-height:1.5;">${intro}</p><p style="margin:0;line-height:1.5;">${cta}</p>`,
       'Ver mis desafios',
       `${appUrl}/desafios`,
-      accepted ? '#2563eb' : '#6b7280'
+      accepted ? primaryColor : '#6b7280'
     ),
   }
 }
 
-// Nuevo: mail unificado de "desafio confirmado" para ambos jugadores
-// cuando el desafiado acepta. Incluye la fecha real de expiracion.
 export function challengeConfirmedEmailHtml({
   recipientName,
   opponentName,
   expiresAt,
   appUrl,
+  primaryColor = DEFAULT_PRIMARY,
 }: {
   recipientName: string
   opponentName: string
   expiresAt: string | null
   appUrl: string
+  primaryColor?: string
 }): { subject: string; html: string } {
   const expiresFormatted = formatExpiresEs(expiresAt)
   const deadline = expiresFormatted
@@ -150,7 +162,8 @@ export function challengeConfirmedEmailHtml({
        <p style="margin:0 0 16px;line-height:1.5;">${deadline}</p>
        <p style="margin:0;line-height:1.5;">Cuando jueguen, ambos cargan el resultado en la app. Si los dos coinciden en el ganador, el ranking se actualiza automaticamente.</p>`,
       'Ver el desafio',
-      `${appUrl}/desafios`
+      `${appUrl}/desafios`,
+      primaryColor
     ),
   }
 }
@@ -159,10 +172,12 @@ export function matchResultPendingEmailHtml({
   recipientName,
   reporterName,
   appUrl,
+  primaryColor = DEFAULT_PRIMARY,
 }: {
   recipientName: string
   reporterName: string
   appUrl: string
+  primaryColor?: string
 }): { subject: string; html: string } {
   return {
     subject: `${reporterName} cargo el resultado del partido`,
@@ -171,7 +186,8 @@ export function matchResultPendingEmailHtml({
       `<p style="margin:0 0 16px;line-height:1.5;"><strong>${reporterName}</strong> ya cargo el resultado del partido.</p>
        <p style="margin:0;line-height:1.5;">Para confirmarlo y cerrar el desafio, entra y carga tu version. Si los dos coinciden en el ganador, el ranking se actualiza automaticamente.</p>`,
       'Cargar mi resultado',
-      `${appUrl}/desafios`
+      `${appUrl}/desafios`,
+      primaryColor
     ),
   }
 }
@@ -187,6 +203,8 @@ export function matchConfirmedEmailHtml({
   iWon: boolean
   appUrl: string
 }): { subject: string; html: string } {
+  // Este mail mantiene verde para victoria y gris para derrota,
+  // independiente del color del club. Da feedback emocional inmediato.
   const subject = iWon
     ? `Ganaste contra ${opponentName} 🎾`
     : `Resultado confirmado vs ${opponentName}`
