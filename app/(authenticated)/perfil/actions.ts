@@ -15,7 +15,7 @@ const ALLOWED_TYPES = new Set([
   'image/webp',
   'image/gif',
 ])
-const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_BYTES = 5 * 1024 * 1024
 
 export async function updateProfile(
   _prev: UpdateProfileResult,
@@ -33,11 +33,10 @@ export async function updateProfile(
     return { ok: false, error: 'El nombre es demasiado largo (max 80).' }
   }
 
-  // Avatar: file (input type=file) o flag de "remover"
   const avatarFile = formData.get('avatar_file') as File | null
   const removeAvatar = String(formData.get('remove_avatar') ?? '') === '1'
 
-  let avatar_url: string | null | undefined = undefined // undefined = no tocar
+  let avatar_url: string | null | undefined = undefined
 
   if (removeAvatar) {
     avatar_url = null
@@ -51,7 +50,6 @@ export async function updateProfile(
 
     const ext = (avatarFile.name.split('.').pop() || 'jpg').toLowerCase()
     const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
-    // Path con folder = auth_user_id (lo exigen las policies de storage)
     const path = `${user.id}/${Date.now()}.${safeExt}`
 
     const { error: upErr } = await supabase.storage
@@ -69,7 +67,6 @@ export async function updateProfile(
     avatar_url = pub.publicUrl
   }
 
-  // Update profile
   const update: { full_name: string; avatar_url?: string | null } = {
     full_name: fullName,
   }
@@ -80,6 +77,33 @@ export async function updateProfile(
     .update(update)
     .eq('auth_user_id', user.id)
 
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath('/perfil')
+  revalidatePath('/ranking')
+  return { ok: true }
+}
+
+export interface VacationResult {
+  ok: boolean
+  error?: string
+}
+
+/**
+ * Activa el modo vacaciones por N días, o lo desactiva si days = 0.
+ */
+export async function setVacationMode(
+  _prev: VacationResult,
+  formData: FormData
+): Promise<VacationResult> {
+  const supabase = await createClient()
+  const daysRaw = String(formData.get('days') ?? '0')
+  const days = parseInt(daysRaw, 10)
+  if (!Number.isFinite(days)) {
+    return { ok: false, error: 'Cantidad de dias invalida.' }
+  }
+
+  const { error } = await supabase.rpc('set_vacation_mode', { p_days: days })
   if (error) return { ok: false, error: error.message }
 
   revalidatePath('/perfil')
