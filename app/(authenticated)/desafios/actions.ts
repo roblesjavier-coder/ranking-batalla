@@ -133,13 +133,12 @@ export async function submitMatchResult(
     return { ok: false, error: 'Faltan datos del partido' }
   }
 
-  // Construir score JSONB a partir de los inputs del form
   const sets: SetScore[] = []
   for (let i = 1; i <= 3; i++) {
     const aRaw = formData.get(`set${i}_a`)
     const bRaw = formData.get(`set${i}_b`)
     if (aRaw == null || bRaw == null || aRaw === '' || bRaw === '') {
-      if (i === 3) continue // set 3 opcional
+      if (i === 3) continue
       return { ok: false, error: `Set ${i} incompleto` }
     }
     const a = Number(aRaw)
@@ -168,7 +167,6 @@ export async function submitMatchResult(
 
   const status = statusText as 'reporte_parcial' | 'partido_confirmado' | 'partido_disputado'
 
-  // Emails best-effort segun resultado
   try {
     const { data: ch } = await supabase
       .from('challenges')
@@ -211,7 +209,6 @@ export async function submitMatchResult(
       const winnerIsChallenger = winnerId === challenger.id
       const winnerProfile = winnerIsChallenger ? challenger : defender
       const loserProfile = winnerIsChallenger ? defender : challenger
-      // mail al ganador
       if (winnerProfile.email) {
         const { subject, html } = matchConfirmedEmailHtml({
           recipientName: winnerProfile.full_name ?? 'Jugador',
@@ -221,7 +218,6 @@ export async function submitMatchResult(
         })
         await sendEmail({ to: winnerProfile.email, subject, html })
       }
-      // mail al perdedor
       if (loserProfile.email) {
         const { subject, html } = matchConfirmedEmailHtml({
           recipientName: loserProfile.full_name ?? 'Jugador',
@@ -239,4 +235,51 @@ export async function submitMatchResult(
   revalidatePath('/desafios')
   revalidatePath('/ranking')
   return { ok: true, status }
+}
+
+// Cancelacion mutua post-aceptacion
+export async function requestMatchCancel(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const challengeId = String(formData.get('challenge_id') ?? '')
+  if (!challengeId) return { ok: false, error: 'challenge_id requerido' }
+  const { error } = await supabase.rpc('request_match_cancel', {
+    p_challenge_id: challengeId,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/desafios')
+  return { ok: true }
+}
+
+export async function acceptMatchCancel(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const challengeId = String(formData.get('challenge_id') ?? '')
+  if (!challengeId) return { ok: false, error: 'challenge_id requerido' }
+  const { error } = await supabase.rpc('accept_match_cancel', {
+    p_challenge_id: challengeId,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/desafios')
+  revalidatePath('/ranking')
+  return { ok: true }
+}
+
+export async function withdrawMatchCancel(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const challengeId = String(formData.get('challenge_id') ?? '')
+  if (!challengeId) return { ok: false, error: 'challenge_id requerido' }
+  const { error } = await supabase.rpc('withdraw_match_cancel', {
+    p_challenge_id: challengeId,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/desafios')
+  return { ok: true }
 }

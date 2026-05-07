@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 type Tab = 'activos' | 'recibidos' | 'enviados' | 'historial'
 
 interface ChallengeWithProfiles extends Challenge {
+  cancel_requested_by?: string | null
+  cancel_requested_at?: string | null
   challenger: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   defender: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
 }
@@ -88,17 +90,21 @@ export default async function DesafiosPage({
   const isMine = (c: ChallengeWithProfiles) =>
     c.challenger_id === myId || c.defender_id === myId
 
-  const activos = all.filter(
-    (c) =>
-      c.status === 'aceptado' &&
-      isMine(c)
-  )
+  const activos = all.filter((c) => c.status === 'aceptado' && isMine(c))
   const recibidos = all.filter((c) => c.status === 'pendiente' && c.defender_id === myId)
   const enviados = all.filter((c) => c.status === 'pendiente' && c.challenger_id === myId)
   const historial = all.filter(
     (c) =>
       isMine(c) &&
-      ['jugado', 'walkover_a_desafiante', 'walkover_a_desafiado', 'rechazado', 'cancelado_mutuo', 'cancelado_admin', 'expirado'].includes(c.status)
+      [
+        'jugado',
+        'walkover_a_desafiante',
+        'walkover_a_desafiado',
+        'rechazado',
+        'cancelado_mutuo',
+        'cancelado_admin',
+        'expirado',
+      ].includes(c.status)
   )
 
   const visible: ChallengeWithProfiles[] =

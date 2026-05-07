@@ -2,8 +2,11 @@
 
 import { useActionState, useState } from 'react'
 import {
+  acceptMatchCancel,
   cancelChallenge,
+  requestMatchCancel,
   respondChallenge,
+  withdrawMatchCancel,
   type ActionResult,
 } from './actions'
 import { LoadResultForm } from './LoadResultForm'
@@ -26,6 +29,8 @@ interface MatchPartial extends Pick<
 
 interface Props {
   challenge: Challenge & {
+    cancel_requested_by?: string | null
+    cancel_requested_at?: string | null
     challenger: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
     defender: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   }
@@ -44,18 +49,14 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
   const issued = formatDate(challenge.issued_at)
   const expires = formatDate(challenge.expires_at)
 
-  const [respondState, respondAction, respondPending] = useActionState(
-    respondChallenge,
-    initial
-  )
-  const [cancelState, cancelAction, cancelPending] = useActionState(
-    cancelChallenge,
-    initial
-  )
+  const [respondState, respondAction, respondPending] = useActionState(respondChallenge, initial)
+  const [cancelState, cancelAction, cancelPending] = useActionState(cancelChallenge, initial)
+  const [reqCancelState, reqCancelAction, reqCancelPending] = useActionState(requestMatchCancel, initial)
+  const [accCancelState, accCancelAction, accCancelPending] = useActionState(acceptMatchCancel, initial)
+  const [wdCancelState, wdCancelAction, wdCancelPending] = useActionState(withdrawMatchCancel, initial)
 
   const [showLoadForm, setShowLoadForm] = useState(false)
 
-  // Estado del reporte propio dentro del match
   const myReported = match
     ? isMyChallenge
       ? !!match.challenger_reported_at
@@ -66,6 +67,11 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
       ? !!match.defender_reported_at
       : !!match.challenger_reported_at
     : false
+
+  const cancelReqBy = challenge.cancel_requested_by ?? null
+  const iRequestedCancel = cancelReqBy === myId
+  const otherRequestedCancel = cancelReqBy && cancelReqBy !== myId
+  const noOneRequestedCancel = !cancelReqBy
 
   return (
     <li className="bg-white rounded-2xl shadow-sm p-4">
@@ -84,7 +90,7 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
         <p className="text-xs text-gray-600 mb-3">Vence el {expires}.</p>
       )}
 
-      {challenge.status === 'aceptado' && !match?.disputed && (
+      {challenge.status === 'aceptado' && !match?.disputed && noOneRequestedCancel && (
         <p className="text-xs text-gray-600 mb-3">
           Tienen hasta el {expires} para concretar el partido.
         </p>
@@ -98,6 +104,49 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
 
       {challenge.status === 'jugado' && match?.confirmed_at && (
         <ResultSummary match={match} challengerId={challenge.challenger_id} />
+      )}
+
+      {/* Solicitud de cancelacion */}
+      {challenge.status === 'aceptado' && otherRequestedCancel && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-amber-800">
+          <p className="font-semibold mb-2">{otherName} pidio cancelar el desafio.</p>
+          <p className="mb-2">Si aceptas, se cancela sin que nadie cambie de puesto en el ranking.</p>
+          <div className="flex gap-2">
+            <form action={accCancelAction} className="flex-1">
+              <input type="hidden" name="challenge_id" value={challenge.id} />
+              <button
+                type="submit"
+                disabled={accCancelPending}
+                className="w-full rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white py-1.5 text-xs font-medium"
+              >
+                {accCancelPending ? 'Aceptando…' : 'Aceptar cancelar'}
+              </button>
+            </form>
+          </div>
+          {accCancelState.error && (
+            <p className="mt-2 text-xs text-red-600">{accCancelState.error}</p>
+          )}
+        </div>
+      )}
+
+      {challenge.status === 'aceptado' && iRequestedCancel && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-amber-800">
+          <p className="font-semibold mb-2">Pediste cancelar el desafio.</p>
+          <p className="mb-2">Esperando que {otherName} acepte. Mientras tanto puedes retirar la solicitud.</p>
+          <form action={wdCancelAction}>
+            <input type="hidden" name="challenge_id" value={challenge.id} />
+            <button
+              type="submit"
+              disabled={wdCancelPending}
+              className="w-full rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 py-1.5 text-xs font-medium"
+            >
+              {wdCancelPending ? 'Retirando…' : 'Retirar solicitud'}
+            </button>
+          </form>
+          {wdCancelState.error && (
+            <p className="mt-2 text-xs text-red-600">{wdCancelState.error}</p>
+          )}
+        </div>
       )}
 
       {/* Botones segun rol */}
@@ -148,12 +197,29 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
               Ya cargaste tu reporte. {otherReported ? '' : `Esperando que ${otherName} cargue el suyo.`}
             </p>
           ) : !showLoadForm ? (
-            <button
-              onClick={() => setShowLoadForm(true)}
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-medium"
-            >
-              {otherReported ? `${otherName} ya reporto — cargar mi version` : 'Cargar resultado'}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowLoadForm(true)}
+                className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-medium"
+              >
+                {otherReported ? `${otherName} ya reporto — cargar mi version` : 'Cargar resultado'}
+              </button>
+              {noOneRequestedCancel && (
+                <form action={reqCancelAction}>
+                  <input type="hidden" name="challenge_id" value={challenge.id} />
+                  <button
+                    type="submit"
+                    disabled={reqCancelPending}
+                    className="w-full text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    {reqCancelPending ? 'Pidiendo…' : 'Pedir cancelar el desafio'}
+                  </button>
+                </form>
+              )}
+              {reqCancelState.error && (
+                <p className="text-xs text-red-600">{reqCancelState.error}</p>
+              )}
+            </div>
           ) : (
             challenge.challenger && challenge.defender && (
               <LoadResultForm
