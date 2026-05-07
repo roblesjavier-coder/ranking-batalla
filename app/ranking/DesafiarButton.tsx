@@ -28,7 +28,7 @@ export function DesafiarButton({ defenderId, defenderName }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5"
+        className="rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5"
       >
         {pending ? '…' : 'Desafiar'}
       </button>

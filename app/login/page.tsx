@@ -88,14 +88,14 @@ export default function LoginPage() {
             placeholder="12345678"
             value={codigo}
             onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-gray-400"
             autoFocus
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={cargando || codigo.length < 6}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 font-medium"
+            className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white py-2 font-medium"
           >
             {cargando ? 'Verificando…' : 'Entrar'}
           </button>
@@ -151,13 +151,13 @@ export default function LoginPage() {
             placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={cargando}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 font-medium"
+            className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white py-2 font-medium"
           >
             {cargando ? 'Enviando…' : 'Enviarme el codigo'}
           </button>

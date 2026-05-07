@@ -65,7 +65,7 @@ export function PerfilForm({
           required
           maxLength={80}
           placeholder="Tu nombre"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
 
@@ -124,7 +124,7 @@ export function PerfilForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 font-medium"
+        className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white py-2 font-medium"
       >
         {pending ? 'Guardando…' : 'Guardar'}
       </button>

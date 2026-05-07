@@ -38,7 +38,7 @@ export function LoadResultForm({ challengeId, challenger, defender, myId }: Prop
           type="date"
           name="played_at"
           defaultValue={new Date().toISOString().slice(0, 10)}
-          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
       </div>
 
@@ -49,7 +49,7 @@ export function LoadResultForm({ challengeId, challenger, defender, myId }: Prop
         <button
           type="button"
           onClick={() => setShowSet3(true)}
-          className="text-xs text-blue-600 hover:text-blue-700"
+          className="text-xs text-[var(--primary)] hover:opacity-80"
         >
           + Agregar set 3 (definitorio)
         </button>
@@ -128,7 +128,7 @@ export function LoadResultForm({ challengeId, challenger, defender, myId }: Prop
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium"
+        className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white py-2 text-sm font-medium"
       >
         {pending ? 'Guardando…' : 'Cargar resultado'}
       </button>
@@ -158,7 +158,7 @@ function SetRow({
           max={20}
           required={num !== 3}
           placeholder={challengerName.slice(0, 8)}
-          className="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
         <span className="text-gray-400">-</span>
         <input
@@ -168,7 +168,7 @@ function SetRow({
           max={20}
           required={num !== 3}
           placeholder={defenderName.slice(0, 8)}
-          className="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-400"
         />
         <span className="text-xs text-gray-500 ml-2 truncate">
           {challengerName} vs {defenderName}

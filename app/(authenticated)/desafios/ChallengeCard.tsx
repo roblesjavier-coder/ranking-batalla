@@ -158,7 +158,7 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
             <button
               type="submit"
               disabled={respondPending}
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 text-sm font-medium"
+              className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 text-white py-2 text-sm font-medium"
             >
               {respondPending ? 'Aceptando…' : 'Aceptar'}
             </button>
@@ -200,7 +200,7 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
             <div className="space-y-2">
               <button
                 onClick={() => setShowLoadForm(true)}
-                className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-medium"
+                className="w-full rounded-lg bg-[var(--primary)] hover:opacity-90 text-white py-2 text-sm font-medium"
               >
                 {otherReported ? `${otherName} ya reporto — cargar mi version` : 'Cargar resultado'}
               </button>

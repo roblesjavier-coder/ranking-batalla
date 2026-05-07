@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { ClubSettings, Profile } from '@/lib/database.types'
 
 export default async function AuthenticatedLayout({
   children,
@@ -15,29 +14,47 @@ export default async function AuthenticatedLayout({
   if (!user) redirect('/login')
 
   const [profileRes, clubRes] = await Promise.all([
+    supabase.from('profiles').select('role').eq('auth_user_id', user.id).maybeSingle(),
     supabase
-      .from('profiles')
-      .select('*')
-      .eq('auth_user_id', user.id)
+      .from('club_settings')
+      .select('club_name, logo_url, primary_color')
+      .eq('id', 1)
       .maybeSingle(),
-    supabase.from('club_settings').select('*').eq('id', 1).maybeSingle(),
   ])
 
-  const profile = profileRes.data as Profile | null
-  const club = clubRes.data as ClubSettings | null
+  const profile = profileRes.data as { role: string | null } | null
+  const club = clubRes.data as {
+    club_name: string | null
+    logo_url: string | null
+    primary_color: string | null
+  } | null
   const isAdmin = profile?.role === 'admin'
+  const primaryColor = club?.primary_color ?? '#b91c1c'
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div
+      className="min-h-screen flex flex-col bg-gray-50"
+      style={{ ['--primary' as string]: primaryColor } as React.CSSProperties}
+    >
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="px-4 py-3 max-w-md mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900 truncate">
-            {club?.club_name ?? 'Ranking Batalla'}
-          </h1>
+        <div className="px-4 py-3 max-w-md mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {club?.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={club.logo_url}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-gray-100"
+              />
+            )}
+            <h1 className="text-lg font-semibold text-gray-900 truncate">
+              {club?.club_name ?? 'Ranking Batalla'}
+            </h1>
+          </div>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-gray-500 hover:text-gray-700 flex-shrink-0"
             >
               Salir
             </button>
@@ -61,15 +78,7 @@ export default async function AuthenticatedLayout({
   )
 }
 
-function NavLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string
-  label: string
-  icon: string
-}) {
+function NavLink({ href, label, icon }: { href: string; label: string; icon: string }) {
   return (
     <Link
       href={href}
