@@ -1,15 +1,16 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import type { ClubSettings } from '@/lib/database.types'
-import { ClubForm } from './ClubForm'
+import { ClubForm, type ClubBranding } from './ClubForm'
 
 export default async function AdminClubPage() {
   const supabase = await createClient()
   const { data } = await supabase
     .from('club_settings')
-    .select('*')
+    .select(
+      'club_name, logo_url, banner_url, primary_color, challenge_range_n, challenge_window_days, rematch_cooldown_days, vacation_max_days'
+    )
     .eq('id', 1)
-    .maybeSingle<ClubSettings>()
+    .maybeSingle()
 
   return (
     <div>
@@ -19,8 +20,11 @@ export default async function AdminClubPage() {
       >
         ← Volver
       </Link>
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Configurar club</h2>
-      <ClubForm settings={data ?? null} />
+      <h2 className="text-2xl font-bold text-gray-900 mb-1">Configurar club</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Branding, reglas del ladder y vacaciones.
+      </p>
+      <ClubForm settings={(data ?? null) as ClubBranding | null} />
     </div>
   )
 }
