@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { reclaimMyProfile } from '@/app/auth/reclaim'
 
 export default async function AuthenticatedLayout({
   children,
@@ -22,7 +23,24 @@ export default async function AuthenticatedLayout({
       .maybeSingle(),
   ])
 
-  const profile = profileRes.data as { role: string | null } | null
+  let profile = profileRes.data as { role: string | null } | null
+
+  // Red de seguridad: si el user esta logueado pero no tiene profile reclamado
+  // (sesion abierta antes del fix, o cualquier camino que se haya saltado el
+  // reclaim), lo reclamamos aca una vez y reintentamos.
+  if (!profile) {
+    try {
+      await reclaimMyProfile()
+      const retry = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+      profile = retry.data as { role: string | null } | null
+    } catch (e) {
+      console.error('[authenticated/layout] reclaim fallo:', e)
+    }
+  }
   const club = clubRes.data as {
     club_name: string | null
     logo_url: string | null
