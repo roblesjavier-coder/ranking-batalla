@@ -1,7 +1,11 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { adminCancelChallenge, type ActionResult } from './actions'
+import {
+  adminCancelChallenge,
+  adminMarkInconclusive,
+  type ActionResult,
+} from './actions'
 
 export interface ActiveChallenge {
   id: string
@@ -16,8 +20,11 @@ const initial: ActionResult = { ok: false }
 
 export function ActiveChallengeCard({ challenge }: { challenge: ActiveChallenge }) {
   const [state, action, pending] = useActionState(adminCancelChallenge, initial)
+  const [incState, incAction, incPending] = useActionState(adminMarkInconclusive, initial)
   const [showForm, setShowForm] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [showInc, setShowInc] = useState(false)
+  const [incConfirmed, setIncConfirmed] = useState(false)
 
   const challengerName = challenge.challenger?.full_name ?? 'Desafiante'
   const defenderName = challenge.defender?.full_name ?? 'Desafiado'
@@ -92,6 +99,67 @@ export function ActiveChallengeCard({ challenge }: { challenge: ActiveChallenge 
           </div>
           {state.error && <p className="text-xs text-red-600">{state.error}</p>}
         </form>
+      )}
+
+      {/* Marcar inconclusa (solo desafios aceptados) */}
+      {challenge.status === 'aceptado' && !showForm && (
+        <div className="mt-2">
+          {!showInc ? (
+            <button
+              onClick={() => setShowInc(true)}
+              className="w-full text-sm text-orange-600 hover:text-orange-700 font-medium py-1.5 border border-orange-200 rounded-lg hover:bg-orange-50"
+            >
+              🏳️ Marcar inconclusa (admin)
+            </button>
+          ) : (
+            <form action={incAction} className="space-y-2">
+              <input type="hidden" name="challenge_id" value={challenge.id} />
+              <p className="text-xs text-gray-600">
+                Cierra el desafio como inconcluso sin que nadie cambie de puesto. Usalo cuando no
+                hay acuerdo o alguien no entra a cargar el resultado.
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Nota (opcional)
+                </label>
+                <input
+                  type="text"
+                  name="note"
+                  placeholder="Ej: no se pusieron de acuerdo"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-xs text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={incConfirmed}
+                  onChange={(e) => setIncConfirmed(e.target.checked)}
+                />
+                Confirmo marcar este desafio como inconcluso
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInc(false)
+                    setIncConfirmed(false)
+                  }}
+                  className="flex-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 text-sm font-medium"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit"
+                  disabled={incPending || !incConfirmed}
+                  className="flex-1 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-1.5 text-sm font-medium"
+                >
+                  {incPending ? 'Marcando…' : 'Marcar inconclusa'}
+                </button>
+              </div>
+              {incState.error && <p className="text-xs text-red-600">{incState.error}</p>}
+            </form>
+          )}
+        </div>
       )}
     </li>
   )
