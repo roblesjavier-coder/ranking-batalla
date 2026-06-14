@@ -335,3 +335,35 @@ export async function withdrawMatchCancel(
   revalidatePath('/desafios')
   return { ok: true }
 }
+
+export async function markInconclusive(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const challengeId = String(formData.get('challenge_id') ?? '')
+  const reason = String(formData.get('reason') ?? '')
+  if (!challengeId || !reason) return { ok: false, error: 'Faltan datos.' }
+  const { error } = await supabase.rpc('mark_inconclusive', {
+    p_challenge_id: challengeId,
+    p_reason: reason,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/desafios')
+  return { ok: true }
+}
+
+export async function unmarkInconclusive(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient()
+  const challengeId = String(formData.get('challenge_id') ?? '')
+  if (!challengeId) return { ok: false, error: 'challenge_id requerido' }
+  const { error } = await supabase.rpc('unmark_inconclusive', {
+    p_challenge_id: challengeId,
+  })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/desafios')
+  return { ok: true }
+}

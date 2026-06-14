@@ -13,10 +13,17 @@ export type ChallengeStatus =
   | 'cancelado_mutuo'
   | 'cancelado_admin'
   | 'expirado'
+  | 'inconclusa'
 
 export type ChallengeResponse = 'aceptado' | 'rechazado'
 
 export type CancellationType = 'mutuo' | 'admin'
+
+export type InconclusiveReason =
+  | 'maquina_tiempo'
+  | 'ataque_caca'
+  | 'cambio_grip'
+  | 'no_alcanzamos'
 
 export type RankingChangeReason = 'siembra' | 'partido' | 'walkover' | 'ajuste_admin'
 
@@ -69,6 +76,13 @@ export interface Challenge {
   cancellation_note: string | null
   cancelled_by_admin_id: string | null
   resolved_at: string | null
+  cancel_requested_by: string | null
+  cancel_requested_at: string | null
+  inconclusive_challenger_reason: InconclusiveReason | null
+  inconclusive_defender_reason: InconclusiveReason | null
+  inconclusive_at: string | null
+  inconclusive_admin_id: string | null
+  inconclusive_admin_note: string | null
 }
 
 export interface Match {

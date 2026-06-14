@@ -4,13 +4,15 @@ import { useActionState, useState } from 'react'
 import {
   acceptMatchCancel,
   cancelChallenge,
+  markInconclusive,
   requestMatchCancel,
   respondChallenge,
+  unmarkInconclusive,
   withdrawMatchCancel,
   type ActionResult,
 } from './actions'
 import { LoadResultForm } from './LoadResultForm'
-import type { Challenge, Match, Profile } from '@/lib/database.types'
+import type { Challenge, InconclusiveReason, Match, Profile } from '@/lib/database.types'
 
 interface MatchPartial extends Pick<
   Match,
@@ -29,8 +31,6 @@ interface MatchPartial extends Pick<
 
 interface Props {
   challenge: Challenge & {
-    cancel_requested_by?: string | null
-    cancel_requested_at?: string | null
     challenger: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
     defender: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   }
@@ -39,6 +39,17 @@ interface Props {
 }
 
 const initial: ActionResult = { ok: false }
+
+const REASONS: { value: InconclusiveReason; emoji: string; label: string }[] = [
+  { value: 'maquina_tiempo', emoji: '🕰️', label: 'Máquina del tiempo' },
+  { value: 'ataque_caca', emoji: '💩', label: 'Ataque de caca' },
+  { value: 'cambio_grip', emoji: '🎾', label: 'Cambio de grip' },
+  { value: 'no_alcanzamos', emoji: '😩', label: 'No alcanzamos, pucha qué lata' },
+]
+
+function reasonInfo(r: InconclusiveReason | null) {
+  return REASONS.find((x) => x.value === r) ?? null
+}
 
 export function ChallengeCard({ challenge, match, myId }: Props) {
   const isMyChallenge = challenge.challenger_id === myId
@@ -104,6 +115,14 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
 
       {challenge.status === 'jugado' && match?.confirmed_at && (
         <ResultSummary match={match} challengerId={challenge.challenger_id} />
+      )}
+
+      {challenge.status === 'inconclusa' && (
+        <InconclusiveSummary
+          challenge={challenge}
+          challengerName={challenge.challenger?.full_name ?? 'Desafiante'}
+          defenderName={challenge.defender?.full_name ?? 'Desafiado'}
+        />
       )}
 
       {/* Solicitud de cancelacion */}
@@ -230,6 +249,10 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
               />
             )
           )}
+
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <InconclusiveSection challenge={challenge} myId={myId} otherName={otherName} />
+          </div>
         </>
       )}
 
@@ -240,6 +263,185 @@ export function ChallengeCard({ challenge, match, myId }: Props) {
         <p className="mt-2 text-xs text-red-600">{cancelState.error}</p>
       )}
     </li>
+  )
+}
+
+function InconclusiveSection({
+  challenge,
+  myId,
+  otherName,
+}: {
+  challenge: Props['challenge']
+  myId: string
+  otherName: string
+}) {
+  const isMyChallenge = challenge.challenger_id === myId
+  const myReason = isMyChallenge
+    ? challenge.inconclusive_challenger_reason
+    : challenge.inconclusive_defender_reason
+  const otherReason = isMyChallenge
+    ? challenge.inconclusive_defender_reason
+    : challenge.inconclusive_challenger_reason
+
+  const [markState, markAction, markPending] = useActionState(markInconclusive, initial)
+  const [unmarkState, unmarkAction, unmarkPending] = useActionState(unmarkInconclusive, initial)
+  const [picking, setPicking] = useState(false)
+  const [reason, setReason] = useState<InconclusiveReason>('no_alcanzamos')
+
+  if (myReason) {
+    const info = reasonInfo(myReason)
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-800">
+        <p className="font-semibold mb-1">🏳️ Marcaste Batalla inconclusa</p>
+        <p className="mb-2">
+          Tu motivo: {info?.emoji} {info?.label}.{' '}
+          {otherReason ? '' : `Esperando que ${otherName} también la marque.`}
+        </p>
+        <form action={unmarkAction}>
+          <input type="hidden" name="challenge_id" value={challenge.id} />
+          <button
+            type="submit"
+            disabled={unmarkPending}
+            className="w-full rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 py-1.5 text-xs font-medium"
+          >
+            {unmarkPending ? 'Retirando…' : 'Retirar'}
+          </button>
+        </form>
+        {unmarkState.error && <p className="mt-2 text-xs text-red-600">{unmarkState.error}</p>}
+      </div>
+    )
+  }
+
+  if (otherReason) {
+    const info = reasonInfo(otherReason)
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-800">
+        <p className="font-semibold mb-1">🏳️ {otherName} marcó Batalla inconclusa</p>
+        <p className="mb-2">
+          Su motivo: {info?.emoji} {info?.label}. Si la confirmas (con tu propio motivo), queda
+          inconclusa sin que nadie cambie de puesto.
+        </p>
+        <ReasonPicker reason={reason} setReason={setReason} />
+        <form action={markAction} className="mt-2">
+          <input type="hidden" name="challenge_id" value={challenge.id} />
+          <input type="hidden" name="reason" value={reason} />
+          <button
+            type="submit"
+            disabled={markPending}
+            className="w-full rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-1.5 text-xs font-medium"
+          >
+            {markPending ? 'Confirmando…' : 'Confirmar batalla inconclusa'}
+          </button>
+        </form>
+        {markState.error && <p className="mt-2 text-xs text-red-600">{markState.error}</p>}
+      </div>
+    )
+  }
+
+  if (!picking) {
+    return (
+      <button
+        onClick={() => setPicking(true)}
+        className="w-full text-xs text-gray-500 hover:text-gray-700"
+      >
+        🏳️ Batalla inconclusa
+      </button>
+    )
+  }
+
+  return (
+    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-800">
+      <p className="font-semibold mb-2">¿No terminaron el partido? Elige el motivo:</p>
+      <ReasonPicker reason={reason} setReason={setReason} />
+      <form action={markAction} className="mt-2">
+        <input type="hidden" name="challenge_id" value={challenge.id} />
+        <input type="hidden" name="reason" value={reason} />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setPicking(false)}
+            className="flex-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 text-xs font-medium"
+          >
+            Volver
+          </button>
+          <button
+            type="submit"
+            disabled={markPending}
+            className="flex-1 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-1.5 text-xs font-medium"
+          >
+            {markPending ? 'Marcando…' : 'Marcar inconclusa'}
+          </button>
+        </div>
+      </form>
+      {markState.error && <p className="mt-2 text-xs text-red-600">{markState.error}</p>}
+    </div>
+  )
+}
+
+function ReasonPicker({
+  reason,
+  setReason,
+}: {
+  reason: InconclusiveReason
+  setReason: (r: InconclusiveReason) => void
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-1">
+      {REASONS.map((r) => (
+        <label
+          key={r.value}
+          className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer ${
+            reason === r.value ? 'border-orange-400 bg-orange-100' : 'border-gray-200 bg-white'
+          }`}
+        >
+          <input
+            type="radio"
+            name="reason_pick"
+            checked={reason === r.value}
+            onChange={() => setReason(r.value)}
+          />
+          <span>
+            {r.emoji} {r.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function InconclusiveSummary({
+  challenge,
+  challengerName,
+  defenderName,
+}: {
+  challenge: Props['challenge']
+  challengerName: string
+  defenderName: string
+}) {
+  const cInfo = reasonInfo(challenge.inconclusive_challenger_reason)
+  const dInfo = reasonInfo(challenge.inconclusive_defender_reason)
+  return (
+    <div className="text-xs text-gray-700 mb-3 bg-orange-50 rounded-lg p-2">
+      <div className="font-semibold">🏳️ Batalla inconclusa</div>
+      <div className="mt-0.5 text-gray-600">
+        {challenge.inconclusive_admin_id ? 'Resuelta por el admin' : 'Ambos de acuerdo'} · sin
+        cambios en el ranking
+      </div>
+      {(cInfo || dInfo) && (
+        <div className="mt-1 space-y-0.5">
+          {cInfo && (
+            <div>
+              {challengerName}: {cInfo.emoji} {cInfo.label}
+            </div>
+          )}
+          {dInfo && (
+            <div>
+              {defenderName}: {dInfo.emoji} {dInfo.label}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -313,6 +515,7 @@ function StatusBadge({
     cancelado_mutuo: { label: 'cancelado', className: 'bg-gray-100 text-gray-600' },
     cancelado_admin: { label: 'cancelado', className: 'bg-gray-100 text-gray-600' },
     expirado: { label: 'expirado', className: 'bg-red-50 text-red-700' },
+    inconclusa: { label: 'inconclusa', className: 'bg-orange-50 text-orange-700' },
   }
   const m = map[status]
   return <span className={`text-xs px-2 py-0.5 rounded font-medium ${m.className}`}>{m.label}</span>
