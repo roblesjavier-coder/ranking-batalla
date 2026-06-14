@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { reclaimMyProfile } from '@/app/auth/reclaim'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -62,6 +63,13 @@ export default function LoginPage() {
     if (error) {
       setError(error.message)
       return
+    }
+    // Reclamo del profile tras login por codigo OTP (este flujo no pasa por
+    // /auth/callback, asi que el reclaim debe dispararse aca).
+    try {
+      await reclaimMyProfile()
+    } catch {
+      // no bloqueamos el login si el reclaim falla
     }
     router.push('/')
     router.refresh()

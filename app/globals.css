@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Color primario por defecto (rojo lava del club). Las paginas dentro del
+     grupo (authenticated) lo sobreescriben con el color real del club via
+     style inline; las paginas standalone como /login usan este default. */
+  --primary: #b91c1c;
 }
 
 @theme inline {
