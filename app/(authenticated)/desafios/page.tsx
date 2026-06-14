@@ -8,8 +8,6 @@ export const dynamic = 'force-dynamic'
 type Tab = 'activos' | 'recibidos' | 'enviados' | 'historial'
 
 interface ChallengeWithProfiles extends Challenge {
-  cancel_requested_by?: string | null
-  cancel_requested_at?: string | null
   challenger: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   defender: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
 }
@@ -104,6 +102,7 @@ export default async function DesafiosPage({
         'cancelado_mutuo',
         'cancelado_admin',
         'expirado',
+        'inconclusa',
       ].includes(c.status)
   )
 
