@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { ClubSettings, Profile } from '@/lib/database.types'
 import { DesafiarButton } from './DesafiarButton'
+import { RankFestBanner } from '@/components/RankFestBanner'
 
 interface RankingRow {
   position: number
@@ -83,6 +84,8 @@ export default async function RankingPage() {
           />
         </div>
       )}
+
+      <RankFestBanner />
 
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Ranking del club</h2>
       <p className="text-sm text-gray-500 mb-4">
