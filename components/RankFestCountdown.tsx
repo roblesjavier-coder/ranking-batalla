@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import { RANKFEST } from '@/lib/rankfest'
 
 // "Reloj" externo: avisa a los suscriptores cada segundo. En el servidor
 // devuelve null para que el HTML inicial no dependa de la hora.
@@ -52,7 +53,7 @@ export function RankFestCountdown({ startsAt, endsAt, variant = 'full' }: Props)
   if (now >= end) {
     return (
       <p className={variant === 'compact' ? 'text-xs text-amber-200/80' : 'text-lg text-amber-200/80 tracking-widest uppercase'}>
-        Gracias por la batalla. Nos vemos el proximo año.
+        {RANKFEST.countdown.done}
       </p>
     )
   }
@@ -66,7 +67,7 @@ export function RankFestCountdown({ startsAt, endsAt, variant = 'full' }: Props)
             : 'text-2xl font-bold text-red-400 uppercase tracking-[0.3em] animate-pulse'
         }
       >
-        ¡Es hoy! La batalla ya empezo
+        {RANKFEST.countdown.live}
       </p>
     )
   }
