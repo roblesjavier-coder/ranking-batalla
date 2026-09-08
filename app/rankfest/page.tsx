@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const serif = { fontFamily: 'Georgia, "Times New Roman", serif' } as const
 
 const whatsappShare = `https://wa.me/?text=${encodeURIComponent(
-  `🔥 RANK FEST ${RANKFEST.edition} OFICIAL 🔥\n${RANKFEST.dateLabel} · ${RANKFEST.venue.name}\nTodo el programa aca: ${SITE}/rankfest`
+  `🔥 RANK FEST ${RANKFEST.edition} OFICIAL 🔥\n${RANKFEST.dateLabel} · ${RANKFEST.venue.name}\nSin excusas, sin máquina del tiempo. Programa y reglamento del averno: ${SITE}/rankfest`
 )}`
 
 export default function RankFestPage() {
@@ -73,7 +73,7 @@ export default function RankFestPage() {
         {/* Cuenta regresiva */}
         <section className="max-w-4xl mx-auto px-4 py-10 text-center border-b border-[#4e4639]">
           <p className="text-xs uppercase tracking-[0.35em] text-[#9c9588] mb-4">
-            Faltan para la batalla
+            {RANKFEST.countdown.label}
           </p>
           <RankFestCountdown startsAt={RANKFEST.startsAt} endsAt={RANKFEST.endsAt} variant="full" />
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -100,7 +100,7 @@ export default function RankFestPage() {
         <section className="max-w-4xl mx-auto px-4 py-14">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl sm:text-3xl uppercase tracking-[0.15em] font-bold">
-              Un dia. Una fiesta. Una leyenda.
+              {RANKFEST.headline}
             </h2>
             <div className="w-24 h-[3px] bg-[#bd2929] mx-auto my-4" />
             <p className="text-[#9c9588] text-base sm:text-lg leading-relaxed">{RANKFEST.intro}</p>
@@ -109,15 +109,15 @@ export default function RankFestPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-10">
             <InfoCard icon="📅" label="Fecha" value={RANKFEST.dateLabel} sub={RANKFEST.timeLabel} />
             <InfoCard icon="📍" label="Lugar" value={RANKFEST.venue.name} sub={RANKFEST.venue.commune} />
-            <InfoCard icon="⚔️" label="Guerreros" value={RANKFEST.warriors} />
-            <InfoCard icon="☠️" label="Mision" value="Competir" sub="Hacer historia" />
+            <InfoCard icon="⚔️" label="Guerreros" value={RANKFEST.warriors} sub={RANKFEST.warriorsNote} />
+            <InfoCard icon="☠️" label="Mision" value={RANKFEST.mission} sub={RANKFEST.missionNote} />
           </div>
         </section>
 
         {/* Actividades */}
         <section className="bg-[#0f0e0c] border-y border-[#4e4639]">
           <div className="max-w-4xl mx-auto px-4 py-14">
-            <SectionTitle title="Actividades" subtitle="Cinco pruebas. Una jornada. Un solo espiritu." />
+            <SectionTitle title="Actividades" subtitle={RANKFEST.activitiesSubtitle} />
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {RANKFEST.activities.map((a, i) => (
                 <div
@@ -153,12 +153,37 @@ export default function RankFestPage() {
           </ol>
         </section>
 
-        {/* Ubicacion */}
+        {/* Reglamento del averno */}
         <section className="bg-[#0f0e0c] border-y border-[#4e4639]">
+          <div className="max-w-4xl mx-auto px-4 py-14">
+            <SectionTitle title={RANKFEST.rulesTitle} subtitle={RANKFEST.rulesSubtitle} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {RANKFEST.rules.map((r, i) => (
+                <div
+                  key={r.name}
+                  className="bg-[#12110f] border border-[#4e4639] hover:border-[#bd2929] transition-colors p-5 flex gap-4"
+                >
+                  <div className="text-3xl leading-none pt-1">{r.icon}</div>
+                  <div className="min-w-0">
+                    <h3 className="uppercase font-bold text-sm tracking-wider mb-1">
+                      <span className="text-[#bd2929] mr-2">Art. {i + 1}</span>
+                      {r.name}
+                    </h3>
+                    <p className="text-[#9c9588] text-sm leading-snug">{r.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Ubicacion */}
+        <section className="border-b border-[#4e4639]">
           <div className="max-w-4xl mx-auto px-4 py-14 text-center">
             <SectionTitle title={RANKFEST.venue.name} />
             <div className="text-2xl">{RANKFEST.venue.address}</div>
             <div className="text-[#9c9588] mt-1">{RANKFEST.venue.commune}</div>
+            <p className="text-[#9c9588] text-sm mt-4 max-w-md mx-auto italic">{RANKFEST.venue.note}</p>
             <a
               href={RANKFEST.venue.mapsUrl}
               target="_blank"
