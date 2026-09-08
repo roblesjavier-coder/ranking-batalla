@@ -23,7 +23,7 @@ export function RankFestBanner() {
 
       <div className="relative px-4 py-4 text-amber-50">
         <div className="text-[10px] uppercase tracking-[0.3em] text-red-400 mb-1">
-          Celebracion anual · {RANKFEST.dateLabel}
+          {RANKFEST.banner.kicker} · {RANKFEST.dateLabel}
         </div>
         <div className="flex items-baseline gap-2 leading-none">
           <span
@@ -53,7 +53,7 @@ export function RankFestBanner() {
             variant="compact"
           />
           <span className="text-xs font-semibold uppercase tracking-wider text-red-300 group-hover:text-red-200 whitespace-nowrap">
-            Ver programa →
+            {RANKFEST.banner.cta}
           </span>
         </div>
       </div>
